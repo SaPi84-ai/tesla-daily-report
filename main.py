@@ -2,14 +2,21 @@ import requests
 import datetime
 import os
 
-# 1. Tesla árfolyam lekérése
+# 1. Tesla árfolyam lekérése, hibakezeléssel
 def get_tesla_price():
     url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=TSLA"
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
-    data = response.json()
-    quote = data["quoteResponse"]["result"][0]
-    return quote["regularMarketPrice"], quote["regularMarketChangePercent"]
+
+    try:
+        data = response.json()
+        quote = data.get("quoteResponse", {}).get("result", [])
+        if not quote:
+            return None, None
+        return quote[0]["regularMarketPrice"], quote[0]["regularMarketChangePercent"]
+    except Exception as e:
+        print("Hiba a Yahoo Finance válasz feldolgozása közben:", e)
+        return None, None
 
 # 2. Egyszerű ajánlás logika
 def get_recommendation(change_percent):
@@ -20,14 +27,23 @@ def get_recommendation(change_percent):
     else:
         return "A részvény emelkedik. Ha van, érdemes lehet tartani. Vásárlással várj, amíg stabilizálódik."
 
-# 3. Jelentés összeállítása
+# 3. Jelentés összeállítása, eseti hibaüzenettel
 def generate_report():
     today = datetime.date.today().strftime("%Y. %B %d.")
     price, change = get_tesla_price()
+
+    if price is None or change is None:
+        return f"""TESLA – Napi összefoglaló
+📅 {today}
+
+⚠️ Nem sikerült lekérni a Tesla részvényadatokat. Lehet, hogy átmeneti probléma van az adatforrással.
+Kérlek, próbáld újra később.
+"""
+
     rec = get_recommendation(change)
     change_str = f"{change:.2f}%"
-    
-    report = f"""TESLA – Napi összefoglaló
+
+    return f"""TESLA – Napi összefoglaló
 📅 {today}
 
 💵 Aktuális árfolyam: ${price}
@@ -36,8 +52,7 @@ def generate_report():
 💬 Ajánlás:
 {rec}
 """
-    return report
 
-# 4. Tesztfutás (Render.com futtatáskor ez fog lefutni)
+# 4. Futás
 if __name__ == "__main__":
     print(generate_report())
