@@ -5,7 +5,8 @@ import os
 # 1. Tesla árfolyam lekérése
 def get_tesla_price():
     url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=TSLA"
-    response = requests.get(url)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers)
     data = response.json()
     quote = data["quoteResponse"]["result"][0]
     return quote["regularMarketPrice"], quote["regularMarketChangePercent"]
