@@ -1,21 +1,22 @@
 import requests
 import datetime
-import os
 
-# 1. Tesla árfolyam lekérése, hibakezeléssel
+# Twelve Data API kulcsod
+API_KEY = "5c054bd7f8174d6792a14bee77227fbe"
+
+# 1. Tesla árfolyam lekérése Twelve Data-ból
 def get_tesla_price():
-    url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=TSLA"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
-
+    url = f"https://api.twelvedata.com/quote?symbol=TSLA&apikey={API_KEY}"
+    response = requests.get(url)
     try:
         data = response.json()
-        quote = data.get("quoteResponse", {}).get("result", [])
-        if not quote:
+        if "price" not in data or "percent_change" not in data:
             return None, None
-        return quote[0]["regularMarketPrice"], quote[0]["regularMarketChangePercent"]
+        price = float(data["price"])
+        change = float(data["percent_change"])
+        return price, change
     except Exception as e:
-        print("Hiba a Yahoo Finance válasz feldolgozása közben:", e)
+        print("Hiba az adatok feldolgozásakor:", e)
         return None, None
 
 # 2. Egyszerű ajánlás logika
@@ -27,7 +28,7 @@ def get_recommendation(change_percent):
     else:
         return "A részvény emelkedik. Ha van, érdemes lehet tartani. Vásárlással várj, amíg stabilizálódik."
 
-# 3. Jelentés összeállítása, eseti hibaüzenettel
+# 3. Jelentés összeállítása
 def generate_report():
     today = datetime.date.today().strftime("%Y. %B %d.")
     price, change = get_tesla_price()
