@@ -1,59 +1,63 @@
+from flask import Flask, jsonify
 import requests
 import datetime
 
-# Twelve Data API kulcsod
-API_KEY = "5c054bd7f8174d6792a14bee77227fbe"
+app = Flask(__name__)
 
-# 1. Tesla árfolyam lekérése Twelve Data-ból
-def get_tesla_price():
+API_KEY = "5c054bd7f8174d6792a14bee77227fbe"  # Twelve Data kulcs
+
+def get_tesla_data():
     url = f"https://api.twelvedata.com/quote?symbol=TSLA&apikey={API_KEY}"
     response = requests.get(url)
     try:
         data = response.json()
         if "close" not in data or "percent_change" not in data:
-            return None, None
-        price = float(data["close"])
-        change = float(data["percent_change"])
-        return price, change
+            return None
+        return {
+            "price": float(data["close"]),
+            "percent_change": float(data["percent_change"]),
+            "date": datetime.date.today().strftime("%Y. %B %d.")
+        }
     except Exception as e:
-        print("Hiba az adatok feldolgozásakor:", e)
-        return None, None
+        return None
 
-# 2. Egyszerű ajánlás logika
-def get_recommendation(change_percent):
-    if change_percent <= -5:
-        return "A részvény ma sokat esett. Ha hiszel a hosszú távban, akár érdemes lehet venni – de csak óvatosan."
-    elif -5 < change_percent < 2:
-        return "Most nyugodtabb a piac. Nem kell kapkodni, de ha van részvényed, tartsd meg."
+def create_report():
+    tesla = get_tesla_data()
+    if not tesla:
+        return {
+            "status": "error",
+            "message": "Nem sikerült lekérni a Tesla adatokat."
+        }
+    
+    price = tesla["price"]
+    change = tesla["percent_change"]
+    date = tesla["date"]
+
+    if change <= -5:
+        recommendation = "A részvény ma sokat esett. Ha hiszel a hosszú távban, akár érdemes lehet venni – de csak óvatosan."
+    elif -5 < change < 2:
+        recommendation = "Most nyugodtabb a piac. Nem kell kapkodni, de ha van részvényed, tartsd meg."
     else:
-        return "A részvény emelkedik. Ha van, érdemes lehet tartani. Vásárlással várj, amíg stabilizálódik."
+        recommendation = "A részvény emelkedik. Ha van, érdemes lehet tartani. Vásárlással várj, amíg stabilizálódik."
 
-# 3. Jelentés összeállítása
-def generate_report():
-    today = datetime.date.today().strftime("%Y. %B %d.")
-    price, change = get_tesla_price()
+    closing = "Gondolok rád, és drukkolok, hogy szép napod legyen, Barbi! 💛"
 
-    if price is None or change is None:
-        return f"""TESLA – Napi összefoglaló
-📅 {today}
+    return {
+        "status": "ok",
+        "date": date,
+        "price": f"${price:.2f}",
+        "change": f"{change:.2f}%",
+        "recommendation": recommendation,
+        "closing": closing
+    }
 
-⚠️ Nem sikerült lekérni a Tesla részvényadatokat. Lehet, hogy átmeneti probléma van az adatforrással.
-Kérlek, próbáld újra később.
-"""
+@app.route("/")
+def root():
+    return "Tesla Daily Report API – működik."
 
-    rec = get_recommendation(change)
-    change_str = f"{change:.2f}%"
+@app.route("/report")
+def report():
+    return jsonify(create_report())
 
-    return f"""TESLA – Napi összefoglaló
-📅 {today}
-
-💵 Aktuális árfolyam (záróár): ${price}
-📊 Napi változás: {change_str}
-
-💬 Ajánlás:
-{rec}
-"""
-
-# 4. Futás
 if __name__ == "__main__":
-    print(generate_report())
+    app.run(host="0.0.0.0", port=10000)
