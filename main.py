@@ -10,9 +10,9 @@ def get_tesla_price():
     response = requests.get(url)
     try:
         data = response.json()
-        if "price" not in data or "percent_change" not in data:
+        if "close" not in data or "percent_change" not in data:
             return None, None
-        price = float(data["price"])
+        price = float(data["close"])
         change = float(data["percent_change"])
         return price, change
     except Exception as e:
@@ -47,7 +47,7 @@ Kérlek, próbáld újra később.
     return f"""TESLA – Napi összefoglaló
 📅 {today}
 
-💵 Aktuális árfolyam: ${price}
+💵 Aktuális árfolyam (záróár): ${price}
 📊 Napi változás: {change_str}
 
 💬 Ajánlás:
